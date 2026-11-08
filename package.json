@@ -1,0 +1,33 @@
+{
+  "name": "dissent",
+  "version": "0.0.1",
+  "description": "Ask several AI models the same question and see where they disagree, before you ship. Built on the Vercel AI SDK.",
+  "keywords": [
+    "ai",
+    "ai-sdk",
+    "vercel-ai-sdk",
+    "llm",
+    "multi-model",
+    "verification",
+    "dissent"
+  ],
+  "license": "Apache-2.0",
+  "author": "Mohamed Jadib (https://github.com/jadibdev)",
+  "homepage": "https://github.com/jadibdev/dissent#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jadibdev/dissent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jadibdev/dissent/issues"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ]
+}
