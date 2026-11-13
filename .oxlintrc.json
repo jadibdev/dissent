@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn"
+  },
+  "rules": {
+    "no-restricted-globals": [
+      "error",
+      "Buffer",
+      "process",
+      "require",
+      "__dirname",
+      "__filename",
+      "document",
+      "window",
+      "localStorage"
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test-d.ts", "*.config.ts"],
+      "rules": { "no-restricted-globals": "off" }
+    }
+  ],
+  "ignorePatterns": ["dist", "node_modules"]
+}

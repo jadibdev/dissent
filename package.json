@@ -22,12 +22,48 @@
     "url": "https://github.com/jadibdev/dissent/issues"
   },
   "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
   },
   "files": [
-    "index.js",
+    "dist",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "packageManager": "pnpm@11.28.6",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "prepack": "pnpm build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json && tsc --noEmit -p tsconfig.test.json",
+    "lint": "oxlint && oxfmt --check src .github .changeset README.md package.json tsdown.config.ts vitest.config.ts",
+    "format": "oxfmt src .github .changeset README.md package.json tsdown.config.ts vitest.config.ts",
+    "changeset": "changeset"
+  },
+  "peerDependencies": {
+    "ai": "^7.0.162"
+  },
+  "devDependencies": {
+    "@changesets/cli": "2.27.10",
+    "@types/node": "22.19.19",
+    "ai": "7.0.168",
+    "oxfmt": "^0.41.0",
+    "oxlint": "^1.56.0",
+    "tsdown": "^0.23.0",
+    "typescript": "6.0.3",
+    "unrun": "^0.3.1",
+    "vitest": "4.1.11",
+    "zod": "^4.1.8"
+  }
 }
