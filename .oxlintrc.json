@@ -19,7 +19,7 @@
   },
   "overrides": [
     {
-      "files": ["**/*.test.ts", "**/*.test-d.ts", "*.config.ts"],
+      "files": ["**/*.test.ts", "**/*.test-d.ts", "*.config.ts", "scripts/**"],
       "rules": { "no-restricted-globals": "off" }
     }
   ],

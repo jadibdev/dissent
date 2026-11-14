@@ -1,3 +1,4 @@
+export { corroborate } from './corroborate.js';
 export {
   DissentError,
   DissentArgumentError,

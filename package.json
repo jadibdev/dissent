@@ -47,14 +47,18 @@
     "prepack": "pnpm build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.build.json && tsc --noEmit -p tsconfig.test.json",
-    "lint": "oxlint && oxfmt --check src .github .changeset README.md package.json tsdown.config.ts vitest.config.ts",
-    "format": "oxfmt src .github .changeset README.md package.json tsdown.config.ts vitest.config.ts",
+    "lint": "oxlint && oxfmt --check src scripts .github .changeset README.md package.json tsdown.config.ts vitest.config.ts",
+    "format": "oxfmt src scripts .github .changeset README.md package.json tsdown.config.ts vitest.config.ts",
     "changeset": "changeset"
   },
   "peerDependencies": {
     "ai": "^7.0.162"
   },
   "devDependencies": {
+    "@ai-sdk/anthropic": "4.0.101",
+    "@ai-sdk/gateway": "4.0.141",
+    "@ai-sdk/google": "4.0.116",
+    "@ai-sdk/openai": "4.0.113",
     "@changesets/cli": "2.27.10",
     "@types/node": "22.19.19",
     "ai": "7.0.168",
