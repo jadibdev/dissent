@@ -1,5 +1,6 @@
 import { compareUtf16 } from '../canonical/canonical-json.js';
 import { sortWith } from '../compare/util.js';
+import { hasNonEmptySlashParts } from './normalize-witnesses.js';
 
 import type {
   Finding,
@@ -13,6 +14,19 @@ export type AuthorMatch = {
   on: 'requested' | 'served';
 };
 
+function identityMatchesAuthor(
+  identity: ModelIdentity,
+  authorModel: string,
+): boolean {
+  if (identity.canonicalId === authorModel) {
+    return true;
+  }
+  return (
+    hasNonEmptySlashParts(identity.modelId) &&
+    identity.modelId.toLowerCase() === authorModel
+  );
+}
+
 /**
  * Matches a witness against sorted normalized `authorModels` (§8.2).
  * `requested` takes priority over `served`; earliest UTF-16 author model wins ties.
@@ -23,13 +37,13 @@ export function matchAuthorModel(
   sortedAuthorModels: readonly string[],
 ): AuthorMatch | null {
   for (const authorModel of sortedAuthorModels) {
-    if (requested.canonicalId === authorModel) {
+    if (identityMatchesAuthor(requested, authorModel)) {
       return { authorModel, on: 'requested' };
     }
   }
   if (served !== null) {
     for (const authorModel of sortedAuthorModels) {
-      if (served.canonicalId === authorModel) {
+      if (identityMatchesAuthor(served, authorModel)) {
         return { authorModel, on: 'served' };
       }
     }

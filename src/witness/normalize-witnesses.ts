@@ -85,7 +85,7 @@ function isGatewayProvider(provider: string): boolean {
   );
 }
 
-function hasNonEmptySlashParts(id: string): boolean {
+export function hasNonEmptySlashParts(id: string): boolean {
   const slash = id.indexOf('/');
   return slash > 0 && slash < id.length - 1;
 }

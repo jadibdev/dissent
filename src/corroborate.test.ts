@@ -1238,6 +1238,118 @@ describe('corroborate (Phase 4)', () => {
     expect(ledger.fields['/approved']?.presented).toEqual(['b', 'c']);
   });
 
+  test('4.14a A5: non-Gateway aggregators (OpenRouter) match authorModels via upstream modelId without losing providerKey (§8.2)', async () => {
+    const ok = { approved: true, severity: 'low', tags: [], rationale: 'ok' };
+
+    // 1. Both on OpenRouter + self-grading without exclusion -> single-provider: openrouter AND self-grading
+    const warnLedger = await corroborate({
+      witnesses: {
+        a: makeMockModel(ok, {
+          provider: 'openrouter.chat',
+          modelId: 'anthropic/claude-sonnet-4',
+        }),
+        b: makeMockModel(
+          { ...ok, approved: false },
+          {
+            provider: 'openrouter.chat',
+            modelId: 'openai/gpt-4o',
+          },
+        ),
+      },
+      schema: BasicSchema,
+      prompt: 'Review',
+      provenance: { authorModels: ['Anthropic/Claude-Sonnet-4'] },
+    });
+
+    expect(warnLedger.independence.uniqueRequestedProviders).toBe(1);
+    expect(warnLedger.findings).toContainEqual({
+      code: 'single-provider',
+      severity: 'warn',
+      data: { providerKey: 'openrouter' },
+    });
+    expect(warnLedger.independence.selfGradingWitnesses).toEqual([
+      {
+        witness: 'a',
+        authorModel: 'anthropic/claude-sonnet-4',
+        on: 'requested',
+      },
+    ]);
+    expect(warnLedger.findings).toContainEqual({
+      code: 'self-grading',
+      severity: 'warn',
+      witnesses: ['a'],
+      data: { authorModel: 'anthropic/claude-sonnet-4', on: 'requested' },
+    });
+
+    // 2. excludeAuthor before dispatch on OpenRouter
+    const orAuthorMock = makeMockModel(ok, {
+      provider: 'openrouter.chat',
+      modelId: 'anthropic/claude-sonnet-4',
+    });
+    const exclBefore = await corroborate({
+      witnesses: {
+        author: orAuthorMock,
+        b: makeMockModel(ok, {
+          provider: 'openai.chat',
+          modelId: 'gpt-4o',
+        }),
+        c: makeMockModel(ok, {
+          provider: 'google.generative-ai',
+          modelId: 'gemini-2.5-flash',
+        }),
+      },
+      schema: BasicSchema,
+      prompt: 'Review',
+      provenance: {
+        authorModels: ['anthropic/claude-sonnet-4'],
+        excludeAuthor: true,
+      },
+    });
+    expect(orAuthorMock.doGenerateCalls.length).toBe(0);
+    expect(exclBefore.witnesses.author).toMatchObject({
+      status: 'excluded',
+      stage: 'before-dispatch',
+      match: { authorModel: 'anthropic/claude-sonnet-4', on: 'requested' },
+    });
+
+    // 3. excludeAuthor after response when OpenRouter serves author model unexpectedly
+    const orRerouted = makeMockModel(
+      { ...ok, approved: false },
+      {
+        provider: 'openrouter.chat',
+        modelId: 'xai/grok-3',
+        servedModelId: 'anthropic/claude-sonnet-4',
+      },
+    );
+    const exclAfter = await corroborate({
+      witnesses: {
+        rerouted: orRerouted,
+        b: makeMockModel(ok, {
+          provider: 'openai.chat',
+          modelId: 'gpt-4o',
+        }),
+        c: makeMockModel(ok, {
+          provider: 'google.generative-ai',
+          modelId: 'gemini-2.5-flash',
+        }),
+      },
+      schema: BasicSchema,
+      prompt: 'Review',
+      provenance: {
+        authorModels: ['anthropic/claude-sonnet-4'],
+        excludeAuthor: true,
+      },
+    });
+    expect(orRerouted.doGenerateCalls.length).toBe(1);
+    expect(exclAfter.witnesses.rerouted).toMatchObject({
+      status: 'excluded',
+      stage: 'after-response',
+      match: { authorModel: 'anthropic/claude-sonnet-4', on: 'served' },
+    });
+    expect(exclAfter.fields['/approved']?.status).toBe('agree');
+    expect(exclAfter.fields['/approved']?.presented).toEqual(['b', 'c']);
+  });
+
   test('4.15 exclusion leaving fewer than 2 witnesses throws too-few-witnesses-after-exclusion with zero calls', async () => {
     const a = makeMockModel(
       { approved: true, severity: 'low', tags: [], rationale: 'ok' },
