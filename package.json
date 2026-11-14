@@ -47,8 +47,10 @@
     "prepack": "pnpm build",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.build.json && tsc --noEmit -p tsconfig.test.json",
-    "lint": "oxlint && oxfmt --check src scripts .github .changeset README.md package.json tsdown.config.ts vitest.config.ts",
-    "format": "oxfmt src scripts .github .changeset README.md package.json tsdown.config.ts vitest.config.ts",
+    "lint": "oxlint && oxfmt --check src scripts examples .github .changeset README.md package.json tsdown.config.ts vitest.config.ts",
+    "format": "oxfmt src scripts examples .github .changeset README.md package.json tsdown.config.ts vitest.config.ts",
+    "check:edge": "unrun scripts/check-edge-imports.ts",
+    "check:pack": "unrun scripts/check-pack.ts",
     "changeset": "changeset"
   },
   "peerDependencies": {
