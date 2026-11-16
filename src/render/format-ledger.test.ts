@@ -23,6 +23,41 @@ import {
   type Ledger,
 } from '../index.js';
 
+function stripInlineCodeSpans(input: string): string {
+  let out = '';
+  let i = 0;
+  while (i < input.length) {
+    if (input[i] !== '`') {
+      out += input[i];
+      i += 1;
+      continue;
+    }
+    let ticks = 0;
+    while (input[i + ticks] === '`') ticks += 1;
+    const fence = '`'.repeat(ticks);
+    let search = i + ticks;
+    let closeIdx = -1;
+    while (search < input.length) {
+      const hit = input.indexOf(fence, search);
+      if (hit === -1) break;
+      const beforeOk = hit === 0 || input[hit - 1] !== '`';
+      const afterOk = input[hit + ticks] !== '`';
+      if (beforeOk && afterOk) {
+        closeIdx = hit;
+        break;
+      }
+      search = hit + 1;
+    }
+    if (closeIdx === -1) {
+      out += fence;
+      i += ticks;
+    } else {
+      i = closeIdx + ticks;
+    }
+  }
+  return out;
+}
+
 function makeMock(
   canonicalOrModelId: string,
   payload: unknown,
@@ -670,6 +705,11 @@ describe('Phase 5: Layer C formatting & security', () => {
         outcome: 'pass',
         claim: { path: '/exactStr', value: '```' },
       },
+      {
+        source: `src|<script>[a](b)![c](d)&amp;`,
+        outcome: 'pass',
+        claim: { path: '/flag', value: true },
+      },
     ]);
 
     const md = formatLedger(ledger, {
@@ -689,11 +729,14 @@ describe('Phase 5: Layer C formatting & security', () => {
     expect(md).not.toMatch(forbiddenControls);
     expect(ascii).not.toMatch(forbiddenControls);
 
-    // Inline text slots neutralize @user -> &#64;user, <script> -> \<script\>, links/images -> escaped
-    expect(md).toContain('&#64;admin');
-    expect(md).toContain('&#64;user');
-    expect(md).toContain('&#64;reviewer');
-    expect(md).toContain('\\<script\\>');
+    // Q2: `@` inline values wrap in code spans (never `&#64;`, which GitHub still links);
+    // non-`@` inline values backslash-escape Markdown punctuation (`\<script\>`).
+    expect(md).not.toContain('&#64;');
+    expect(md).toContain('``p1/id\\|@admin`<script>[l](x)![i](y)``');
+    expect(md).toContain('`src\\|@reviewer<script>[a](b)![c](d)`');
+    expect(md).toContain(
+      'src\\|\\<script\\>\\[a\\]\\(b\\)\\!\\[c\\]\\(d\\)&amp;amp;',
+    );
     // Check Markdown table structure outside fenced blocks: exact separator column count on every data row
     const mdNoFences = md.replace(/^(`{3,})\n[\s\S]*?\n\1$/gm, '');
     const mdLines = mdNoFences.split('\n');
@@ -755,10 +798,8 @@ describe('Phase 5: Layer C formatting & security', () => {
     expect(md).toContain('````\n');
 
     // No unescaped HTML / links / @mentions in inline prose/table text outside backtick spans and fences
-    const mdOutsideCode = md
-      .replace(/^(`{3,})\n[\s\S]*?\n\1$/gm, '')
-      .replace(/(`+)[^`]*?\1/g, '');
-    expect(mdOutsideCode).not.toMatch(/@[A-Za-z0-9_]/);
+    const mdOutsideCode = stripInlineCodeSpans(mdNoFences);
+    expect(mdOutsideCode).not.toContain('@');
     expect(mdOutsideCode).not.toMatch(/(?<!\\)</);
     expect(mdOutsideCode).not.toMatch(/(?<!\\)\[[^\]]*\]\(/);
     expect(mdOutsideCode).not.toMatch(/(?<!\\)!\[[^\]]*\]\(/);

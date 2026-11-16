@@ -37,18 +37,22 @@ function collapseInline(text: string, maxInlineChars: number): string {
 }
 
 /**
- * Escapes untrusted text for Markdown inline contexts (§11.3 steps 1–3):
- * sanitize → inline collapse/truncate → backslash-escape punctuation → `&amp;` / `&#64;`.
+ * Escapes untrusted text for Markdown inline contexts (§11.3 steps 1–3, Q2):
+ * sanitize → inline collapse/truncate → if `@` is present, wrap in an inline
+ * code span (since GitHub GFM links `&#64;user` as `@mentions`); otherwise
+ * backslash-escape Markdown punctuation and replace `&` with `&amp;`.
  */
 export function escapeMarkdownInline(
   text: string,
   maxInlineChars: number,
 ): string {
   const collapsed = collapseInline(text, maxInlineChars);
+  if (collapsed.includes('@')) {
+    return wrapMarkdownCodeSpan(collapsed);
+  }
   return collapsed
     .replace(MARKDOWN_INLINE_SPECIAL_RE, '\\$&')
-    .replaceAll('&', '&amp;')
-    .replaceAll('@', '&#64;');
+    .replaceAll('&', '&amp;');
 }
 
 /** Sanitizes and truncates untrusted text for ASCII inline lines (§11.3 steps 1–2). */
@@ -59,16 +63,21 @@ export function escapeAsciiInline(
   return collapseInline(text, maxInlineChars);
 }
 
+function wrapMarkdownCodeSpan(body: string): string {
+  const fence = '`'.repeat(longestBacktickRun(body) + 1);
+  const padded =
+    body.startsWith('`') || body.endsWith('`') ? ` ${body} ` : body;
+  return `${fence}${padded.replaceAll('|', '\\|')}${fence}`;
+}
+
 /** Renders a JSON value as an inline Markdown code span safe inside GFM tables (§11.3 step 4). */
 export function formatMarkdownValue(
   value: JSONValue,
   maxInlineChars: number,
 ): string {
-  const body = collapseInline(canonicalJson(value), maxInlineChars);
-  const fence = '`'.repeat(longestBacktickRun(body) + 1);
-  const padded =
-    body.startsWith('`') || body.endsWith('`') ? ` ${body} ` : body;
-  return `${fence}${padded.replaceAll('|', '\\|')}${fence}`;
+  return wrapMarkdownCodeSpan(
+    collapseInline(canonicalJson(value), maxInlineChars),
+  );
 }
 
 /** Renders a JSON value for inline ASCII lines (§11.3 step 6). */
