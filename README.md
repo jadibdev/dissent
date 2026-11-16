@@ -143,6 +143,141 @@ Or load the key from a local env file:
 node --env-file=.env.local node_modules/unrun/dist/cli.mjs examples/api-change-review.ts
 ```
 
+### Live Run Output
+
+Captured live from `examples/api-change-review.ts` against `google/gemini-2.5-flash`, `openai/gpt-4o-mini`, and `zai/glm-4.7-flash` via Vercel AI Gateway:
+
+- All three models agreed on `/changesPublicApi` (`true`, 3/3) and `/risk` (`"high"`, 3/3).
+- `/affectedExports` (`z.array(z.string())`) split (`J=0.75`, 3 in intersection, 4 in union), illustrating why finite vocabularies should use `z.array(z.enum([...]))`.
+- `/confidence` split within `[0.9, 1.0]` (`spread 0.1` > `0.05` tolerance), recorded at `info` severity (`onSplit: 'info'`).
+- `tsc --noEmit` (`scope: 'artifact'`, `pass`) drove the `confirmed` verdict, while `diff-export-check` settled `/changesPublicApi` (`agree=[google, openai, zai]`).
+
+````markdown
+## Dissent Ledger
+
+- **Protocol:** dissent-ledger/1
+- **Fingerprint:** 1c9c638599f8dfe6909f0d265ba2dd9739c38ff8b89dc52539ebb2d2f7b45d79
+- **Created:** 2026-11-14T18:41:34.314Z
+
+Advisory: warnings · Quorum: 3/3 answered (0 failed, 0 excluded) · Coverage: compared 4 of 5 fields (100%)
+
+### Witnesses
+
+| Label  | Requested                  | Served                     | Status   | Detail | Duration | Tokens |
+| ------ | -------------------------- | -------------------------- | -------- | ------ | -------: | -----: |
+| google | google/gemini\-2\.5\-flash | google/gemini\-2\.5\-flash | answered | —      |   5134ms |   1162 |
+| openai | openai/gpt\-4o\-mini       | openai/gpt\-4o\-mini       | answered | —      |   2619ms |    440 |
+| zai    | zai/glm\-4\.7\-flash       | zai/glm\-4\.7\-flash       | answered | —      |   2095ms |    703 |
+
+### Fields
+
+| Path              | Comparator | Status       | Summary                                      |
+| ----------------- | ---------- | ------------ | -------------------------------------------- |
+| /affectedExports  | set        | split        | ∩ 3 · ∪ 4 · J=0.75: `"runReview"` (2/3)      |
+| /changesPublicApi | exact      | agree        | `true` (3/3)                                 |
+| /confidence       | tolerance  | split        | 0.9–1 (spread 0.1) · 0.9–0.95 (2/3), 1 (1/3) |
+| /reasoning        | none       | not-compared | policy/free\-text                            |
+| /risk             | exact      | agree        | `"high"` (3/3)                               |
+
+### Read side by side
+
+- **/reasoning — google:**
+
+```
+The diff introduces multiple breaking changes to the public API. The `ReviewOptions` interface has removed the `system` property (previously deprecated) and introduced `instructions`. The `ReviewResult.score` property's type has changed from a number to a union of string literals ('low' | 'medium' | 'high'), which is a fundamental type change. Furthermore, the main exported function `runReview` has been renamed to `executeReview`. All these changes will require consumers to update their code, leading to a high migration risk.
+```
+
+- **/reasoning — openai:**
+
+```
+The renaming of the function `runReview` to `executeReview` and the change in type for the `score` property in the `ReviewResult` interface from a number range to a specific string union type ('low' | 'medium' | 'high') are both breaking changes. Additionally, the deprecation of the `system` property in `ReviewOptions` towards `instructions` may affect users who were relying on the old structure.
+```
+
+- **/reasoning — zai:**
+
+```
+The diff introduces a breaking API change: the `runReview` function has been renamed to `executeReview`, renaming the only public export of type `Promise<ReviewResult>`. In addition, the `ReviewOptions` interface changed the incompatible `system?: string` to `instructions?: string`, requiring code to update all callers. The `ReviewResult.score` property has changed from `number` to a union string type (`'low' | 'medium' | 'high'`), and a new property `score` was added and marked as breaking. Since all top-level exports in `src/client.ts` are affected and the changes are not additive or safe defaults, this is a high-risk migration.
+```
+
+### Findings
+
+| Severity | Code        | Target           | Witnesses           |
+| -------- | ----------- | ---------------- | ------------------- |
+| warn     | field-split | /affectedExports | google, openai, zai |
+| info     | field-split | /confidence      | google, openai, zai |
+
+### Independence
+
+- **Unique requested providers:** 3
+
+### Adjudication
+
+- **Verdict:** confirmed (artifact-evidence-passed)
+- **Artifact evidence:** pass=1, fail=0, error=0, unknown=0
+- **Unbound:** 0
+- **Conflicts:** 0
+
+| Path              | Value  | Source              | Outcome | Agreeing            | Dissenting | Silent |
+| ----------------- | ------ | ------------------- | ------- | ------------------- | ---------- | ------ |
+| /changesPublicApi | `true` | diff\-export\-check | pass    | google, openai, zai | —          | —      |
+````
+
+<details>
+<summary>ASCII output from the same run</summary>
+
+```text
+==============================================================================
+Dissent Ledger
+==============================================================================
+Protocol    : dissent-ledger/1
+Fingerprint : 1c9c638599f8…
+Created     : 2026-11-14T18:41:34.314Z
+
+Advisory: warnings · Quorum: 3/3 answered (0 failed, 0 excluded) · Coverage: compared 4 of 5 fields (100%)
+
+Witnesses
+------------------------------------------------------------------------------
+google : status=answered, req=google/gemini-2.5-flash, served=google/gemini-2.5-flash, detail=—, duration=5134ms, tokens=1162
+openai : status=answered, req=openai/gpt-4o-mini, served=openai/gpt-4o-mini, detail=—, duration=2619ms, tokens=440
+zai : status=answered, req=zai/glm-4.7-flash, served=zai/glm-4.7-flash, detail=—, duration=2095ms, tokens=703
+
+Fields
+------------------------------------------------------------------------------
+/affectedExports : set [split] -- ∩ 3 · ∪ 4 · J=0.75: "runReview" (2/3)
+/changesPublicApi : exact [agree] -- true (3/3)
+/confidence : tolerance [split] -- 0.9–1 (spread 0.1) · 0.9–0.95 (2/3), 1 (1/3)
+/reasoning : none [not-compared] -- policy/free-text
+/risk : exact [agree] -- "high" (3/3)
+
+Read side by side
+------------------------------------------------------------------------------
+/reasoning (google) :
+    The diff introduces multiple breaking changes to the public API. The `ReviewOptions` interface has removed the `system` property (previously deprecated) and introduced `instructions`. The `ReviewResult.score` property's type has changed from a number to a union of string literals ('low' | 'medium' | 'high'), which is a fundamental type change. Furthermore, the main exported function `runReview` has been renamed to `executeReview`. All these changes will require consumers to update their code, leading to a high migration risk.
+/reasoning (openai) :
+    The renaming of the function `runReview` to `executeReview` and the change in type for the `score` property in the `ReviewResult` interface from a number range to a specific string union type ('low' | 'medium' | 'high') are both breaking changes. Additionally, the deprecation of the `system` property in `ReviewOptions` towards `instructions` may affect users who were relying on the old structure.
+/reasoning (zai) :
+    The diff introduces a breaking API change: the `runReview` function has been renamed to `executeReview`, renaming the only public export of type `Promise<ReviewResult>`. In addition, the `ReviewOptions` interface changed the incompatible `system?: string` to `instructions?: string`, requiring code to update all callers. The `ReviewResult.score` property has changed from `number` to a union string type (`'low' | 'medium' | 'high'`), and a new property `score` was added and marked as breaking. Since all top-level exports in `src/client.ts` are affected and the changes are not additive or safe defaults, this is a high-risk migration.
+
+Findings
+------------------------------------------------------------------------------
+warn : field-split, target=/affectedExports, witnesses=google, openai, zai
+info : field-split, target=/confidence, witnesses=google, openai, zai
+
+Independence
+------------------------------------------------------------------------------
+Unique requested providers : 3
+
+Adjudication
+------------------------------------------------------------------------------
+Verdict           : confirmed (artifact-evidence-passed)
+Artifact evidence : pass=1, fail=0, error=0, unknown=0
+Unbound           : 0
+Conflicts         : 0
+  /changesPublicApi : value=true, source=diff-export-check, outcome=pass, agree=[google, openai, zai], dissent=[—], silent=[—]
+```
+
+</details>
+
 ## License
 
 [Apache-2.0](./LICENSE)
