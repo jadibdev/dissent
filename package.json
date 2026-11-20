@@ -1,6 +1,6 @@
 {
   "name": "dissent",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Ask several AI models the same question and see where they disagree, before you ship. Built on the Vercel AI SDK.",
   "keywords": [
     "ai",
